@@ -1,0 +1,31 @@
+name: Update official WBGT data
+on:
+  workflow_dispatch:
+  schedule:
+    # UTC。JSTの毎時12,27,42,57分頃に実行要求。正確な15分間隔は保証されません。
+    - cron: '12,27,42,57 * * * *'
+permissions:
+  contents: write
+concurrency:
+  group: update-official-wbgt-data
+  cancel-in-progress: false
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Fetch and validate official data
+        run: python scripts/update_wbgt.py
+      - name: Commit only when changed
+        shell: bash
+        run: |
+          if git diff --quiet -- data/current.json; then exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/current.json
+          git commit -m "Update official WBGT data"
+          git push
