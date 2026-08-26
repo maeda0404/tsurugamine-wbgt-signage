@@ -1,1 +1,1067 @@
-'use strict';(()=>{const C=APP_CONFIG,$=id=>document.getElementById(id);let busy=false,last=0,next=0;const df=new Intl.DateTimeFormat('ja-JP',{timeZone:'Asia/Tokyo',year:'numeric',month:'2-digit',day:'2-digit',weekday:'short',hour:'2-digit',minute:'2-digit',second:'2-digit'}),tf=new Intl.DateTimeFormat('ja-JP',{timeZone:'Asia/Tokyo',hour:'2-digit',minute:'2-digit'});function parts(d=new Date()){return Object.fromEntries(new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Tokyo',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).formatToParts(d).filter(x=>x.type!=='literal').map(x=>[x.type,x.value]))}function key(d=new Date()){const p=parts(d);return`${p.year}-${p.month}-${p.day}`}function csv(s){return s.replace(/^\uFEFF/,'').split(/\r?\n/).filter(Boolean).map(l=>{let a=[],v='',q=false;for(let i=0;i<l.length;i++){let c=l[i];if(c==='"'){if(q&&l[i+1]==='"'){v+='"';i++}else q=!q}else if(c===','&&!q){a.push(v.trim());v=''}else v+=c}a.push(v.trim());return a})}function compact(s){if(!/^\d{10}$/.test(s))return null;let y=+s.slice(0,4),m=+s.slice(4,6),d=+s.slice(6,8),h=+s.slice(8);if(h===24)return new Date(Date.UTC(y,m-1,d,15));return new Date(Date.UTC(y,m-1,d,h-9))}function actualDate(ds,ts){let d=/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/.exec(ds),t=/^(\d{1,2}):(\d{2})$/.exec(ts);if(!d||!t)return null;let h=+t[1];if(h===24)return new Date(Date.UTC(+d[1],+d[2]-1,+d[3],15));return new Date(Date.UTC(+d[1],+d[2]-1,+d[3],h-9,+t[2]))}function metaDate(ds,ts){let d=/^(\d{4})\/(\d{2})\/(\d{2})$/.exec(ds||''),t=/^(\d{2}):(\d{2}):(\d{2})$/.exec(ts||'');return d&&t?new Date(Date.UTC(+d[1],+d[2]-1,+d[3],+t[1]-9,+t[2],+t[3])):null}function pred(s){let r=csv(s),row=r.find((x,i)=>i&&x[0]===C.pointCode);if(!row)throw Error('予測地点なし');let vals=r[0].slice(2).map((t,i)=>{let n=Number(row[i+2]);return{at:compact(t),value:Number.isFinite(n)&&n>=-500&&n<=600?Math.round(n/10):null}}).filter(x=>x.at&&x.value!==null);return{published:row[1],vals}}function obs(s){let r=csv(s),i=r[0].indexOf(C.pointCode);if(i<2)throw Error('実況地点なし');return r.slice(1).map(x=>({at:actualDate(x[0],x[1]),value:x[i]===''?null:Number(x[i])})).filter(x=>x.at&&x.at<=new Date(Date.now()+300000)&&Number.isFinite(x.value)&&x.value>=-20&&x.value<=60).sort((a,b)=>b.at-a.at)[0]||null}function alert(ss){let best=null;for(const s of ss){let r=csv(s),m={};for(const x of r)if(x.length>1&&/^[A-Za-z]/.test(x[0]))m[x[0]]=x.slice(1).join(',');let row=r.find(x=>x.length>=8&&(x[4]==='神奈川県'||x[5]==='14')),d=metaDate(m.TargetDate1,m.TargetTime1);if(!row||!d||key(d)!==key()||m.Status&&m.Status!=='通常')continue;let flag=Number(row[6]),pub=metaDate(m.ReportDate,m.ReportTime);if(![0,1,2,3,9].includes(flag))throw Error('フラグ不正');if(!best||(pub||0)>(best.published||0))best={flag,published:pub}}if(!best)throw Error('当日アラートなし');return best}function rank(v){if(!Number.isFinite(v))return['unknown','判定不能'];if(v>=31)return['danger','危険'];if(v>=28)return['severe','厳重警戒'];if(v>=25)return['caution','警戒'];if(v>=21)return['caution','注意'];return['safe','ほぼ安全']}function act(a,r){if(a.flag===3)return'極めて危険です。現場責任者の指示を直ちに確認してください';if(a.flag===1)return'作業計画を見直し、現場責任者の指示を確認してください';return{danger:'作業を中断し、涼しい場所へ移動してください',severe:'休憩回数を増やし、水分・塩分を補給してください',caution:'定期的に休憩し、互いの体調を確認してください',safe:'水分補給を続け、体調変化に注意してください',unknown:'情報を確認できません。現場責任者の指示を確認してください'}[r]}function tomorrow(){let p=parts(),d=new Date(Date.UTC(+p.year,+p.month-1,+p.day,3));d.setUTCDate(d.getUTCDate()+1);return key(d)}function slots(id,maxId,atId,a,empty){let b=$(id);b.replaceChildren();if(!a.length){let d=document.createElement('div');d.className='empty';d.textContent=empty;b.append(d);$(maxId).textContent='最高 --';$(atId).textContent='最高時刻：--';return}for(const x of a.slice(0,6)){let d=document.createElement('div');d.className='slot';let t=document.createElement('time'),v=document.createElement('b');t.textContent=tf.format(x.at);v.textContent=x.value+'℃';d.append(t,v);b.append(d)}let m=a.reduce((x,y)=>y.value>x.value?y:x);$(maxId).textContent='最高 '+m.value+'℃';$(atId).textContent='最高時刻：'+tf.format(m.at)}function stale(age){let b=$('stale');if(age>=C.stale30){b.hidden=false;b.className='critical';b.textContent='前回取得データ｜30分以上、最新情報を取得できていません'}else if(age>=C.stale15){b.hidden=false;b.className='';b.textContent='前回取得データ｜最新情報を取得できていません'}else if(age>0){b.hidden=false;b.className='';b.textContent='前回取得データ｜通信に失敗しました'}else b.hidden=true}function render(m,old=false){let [rk,rl]=rank(m.observation?.value),av=m.alert.flag===3?['special','熱中症特別警戒アラート発表中']:m.alert.flag===1?['warning','熱中症警戒アラート発表中']:m.alert.flag===0?['none','発表なし']:['unknown','確認不能'];$('alert').className='alert '+av[0];$('alertText').textContent=av[1];$('alertTime').textContent='発表日時：'+(m.alert.published?df.format(new Date(m.alert.published)):'確認不能');$('wbgt').className='card '+rk;$('value').textContent=m.observation?m.observation.value.toFixed(1):'--';$('rank').textContent=rl;$('obsTime').textContent='対象時刻：'+(m.observation?df.format(new Date(m.observation.at)):'欠測または観測前');$('action').textContent=act(m.alert,rk);let vs=m.forecast.vals.map(x=>({...x,at:new Date(x.at)}));slots('today','todayMax','todayAt',vs.filter(x=>key(x.at)===key()),'当日の予測を確認できません');slots('tom','tomMax','tomAt',vs.filter(x=>key(x.at)===tomorrow()),'翌日の予測はまだ発表されていません');$('generated').textContent=m.generatedAt?df.format(new Date(m.generatedAt)):'--';$('success').textContent=df.format(new Date(m.fetchedAt));stale(old?Date.now()-m.fetchedAt:0)}function save(m){try{localStorage.setItem(C.storageKey,JSON.stringify(m))}catch(e){console.error(e)}}function load(){try{let x=JSON.parse(localStorage.getItem(C.storageKey));return x&&Number.isFinite(x.fetchedAt)?x:null}catch(e){localStorage.removeItem(C.storageKey);return null}}async function get(){if(busy)return;busy=true;$('net').textContent='● 取得中';let ac=new AbortController(),to=setTimeout(()=>ac.abort(),C.timeoutMs);try{let r=await fetch(C.dataUrl,{signal:ac.signal,cache:'no-cache',headers:{Accept:'application/json'}});if(!r.ok)throw Error('HTTP '+r.status);let p=await r.json();if(p.schemaVersion!==1||!p.official)throw Error('JSON未生成');let f=pred(p.official.forecastCsv),o=obs(p.official.actualCsv),a=alert(p.official.alertCsvs),m={generatedAt:p.generatedAt,forecast:f,observation:o,alert:a,fetchedAt:Date.now()};last=m.fetchedAt;save(m);render(m);$('net').textContent='● 通信正常';$('net').className='ok'}catch(e){console.error(e);$('net').textContent='● 通信失敗';$('net').className='ng';let m=load();if(m){last=m.fetchedAt;render(m,true)}else{$('alertText').textContent='情報取得不能';$('action').textContent='現場責任者の指示を確認してください';stale(C.stale30)}}finally{clearTimeout(to);busy=false;next=Date.now()+C.refreshMs}}function tick(){$('clock').textContent=df.format(new Date());$('next').textContent=next?df.format(new Date(next)):'--';if(last)stale(Math.max(0,Date.now()-last))}document.addEventListener('visibilitychange',()=>{if(!document.hidden&&Date.now()-last>=C.refreshMs)get()});window.addEventListener('online',get);let old=load();if(old){last=old.fetchedAt;render(old,true)}tick();get();setInterval(get,C.refreshMs);setInterval(tick,1000);window.WBGT_TEST={rank}})();
+'use strict';
+
+(() => {
+  const C = window.APP_CONFIG;
+  const $ = (id) => document.getElementById(id);
+
+  const JAPAN_TIME_ZONE = 'Asia/Tokyo';
+
+  const dateTimeFormatter = new Intl.DateTimeFormat('ja-JP', {
+    timeZone: JAPAN_TIME_ZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    weekday: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  });
+
+  const timeFormatter = new Intl.DateTimeFormat('ja-JP', {
+    timeZone: JAPAN_TIME_ZONE,
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+
+  let requestInProgress = false;
+  let lastSuccessfulFetchTime = 0;
+  let nextFetchTime = 0;
+  let lastRenderedModel = null;
+
+  function getJapanParts(date = new Date()) {
+    return Object.fromEntries(
+      new Intl.DateTimeFormat('en-CA', {
+        timeZone: JAPAN_TIME_ZONE,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hourCycle: 'h23'
+      })
+        .formatToParts(date)
+        .filter((part) => part.type !== 'literal')
+        .map((part) => [part.type, part.value])
+    );
+  }
+
+  function getJapanDateKey(date = new Date()) {
+    const p = getJapanParts(date);
+    return `${p.year}-${p.month}-${p.day}`;
+  }
+
+  function getTomorrowJapanDateKey() {
+    const p = getJapanParts();
+
+    const date = new Date(
+      Date.UTC(
+        Number(p.year),
+        Number(p.month) - 1,
+        Number(p.day),
+        3,
+        0,
+        0
+      )
+    );
+
+    date.setUTCDate(date.getUTCDate() + 1);
+
+    return getJapanDateKey(date);
+  }
+
+  function parseCsv(text) {
+    if (typeof text !== 'string') {
+      throw new Error('CSVが文字列ではありません');
+    }
+
+    return text
+      .replace(/^\uFEFF/, '')
+      .split(/\r?\n/)
+      .filter((line) => line.trim() !== '')
+      .map((line) => {
+        const values = [];
+        let currentValue = '';
+        let insideQuotes = false;
+
+        for (let i = 0; i < line.length; i += 1) {
+          const character = line[i];
+
+          if (character === '"') {
+            if (insideQuotes && line[i + 1] === '"') {
+              currentValue += '"';
+              i += 1;
+            } else {
+              insideQuotes = !insideQuotes;
+            }
+          } else if (character === ',' && !insideQuotes) {
+            values.push(currentValue.trim());
+            currentValue = '';
+          } else {
+            currentValue += character;
+          }
+        }
+
+        values.push(currentValue.trim());
+
+        return values;
+      });
+  }
+
+  function parseCompactJapanDateTime(value) {
+    if (!/^\d{10}$/.test(value || '')) {
+      return null;
+    }
+
+    const year = Number(value.slice(0, 4));
+    const month = Number(value.slice(4, 6));
+    const day = Number(value.slice(6, 8));
+    const sourceHour = Number(value.slice(8, 10));
+
+    if (
+      !Number.isInteger(year) ||
+      !Number.isInteger(month) ||
+      !Number.isInteger(day) ||
+      !Number.isInteger(sourceHour)
+    ) {
+      return null;
+    }
+
+    if (sourceHour === 24) {
+      return new Date(
+        Date.UTC(year, month - 1, day, 15, 0, 0)
+      );
+    }
+
+    if (sourceHour < 0 || sourceHour > 23) {
+      return null;
+    }
+
+    return new Date(
+      Date.UTC(year, month - 1, day, sourceHour - 9, 0, 0)
+    );
+  }
+
+  function parseActualJapanDateTime(dateText, timeText) {
+    const dateMatch =
+      /^(\d{4})\/(\d{1,2})\/(\d{1,2})$/.exec(dateText || '');
+
+    const timeMatch =
+      /^(\d{1,2}):(\d{2})$/.exec(timeText || '');
+
+    if (!dateMatch || !timeMatch) {
+      return null;
+    }
+
+    const year = Number(dateMatch[1]);
+    const month = Number(dateMatch[2]);
+    const day = Number(dateMatch[3]);
+    const sourceHour = Number(timeMatch[1]);
+    const minute = Number(timeMatch[2]);
+
+    if (sourceHour === 24) {
+      return new Date(
+        Date.UTC(year, month - 1, day, 15, minute, 0)
+      );
+    }
+
+    if (sourceHour < 0 || sourceHour > 23) {
+      return null;
+    }
+
+    return new Date(
+      Date.UTC(
+        year,
+        month - 1,
+        day,
+        sourceHour - 9,
+        minute,
+        0
+      )
+    );
+  }
+
+  function parseMetadataJapanDateTime(dateText, timeText) {
+    const dateMatch =
+      /^(\d{4})\/(\d{2})\/(\d{2})$/.exec(dateText || '');
+
+    const timeMatch =
+      /^(\d{2}):(\d{2}):(\d{2})$/.exec(timeText || '');
+
+    if (!dateMatch || !timeMatch) {
+      return null;
+    }
+
+    return new Date(
+      Date.UTC(
+        Number(dateMatch[1]),
+        Number(dateMatch[2]) - 1,
+        Number(dateMatch[3]),
+        Number(timeMatch[1]) - 9,
+        Number(timeMatch[2]),
+        Number(timeMatch[3])
+      )
+    );
+  }
+
+  function parseForecastValue(value) {
+    if (
+      value === undefined ||
+      value === null ||
+      String(value).trim() === ''
+    ) {
+      return null;
+    }
+
+    const rawValue = Number(value);
+
+    if (
+      !Number.isFinite(rawValue) ||
+      rawValue < -500 ||
+      rawValue > 600
+    ) {
+      return null;
+    }
+
+    return Math.round(rawValue / 10);
+  }
+
+  function parseForecastCsv(text) {
+    const rows = parseCsv(text);
+
+    if (
+      rows.length < 2 ||
+      rows[0].length < 3
+    ) {
+      throw new Error('予測CSVの形式が不正です');
+    }
+
+    const pointRow = rows.find(
+      (row, index) =>
+        index > 0 &&
+        String(row[0]).trim() === String(C.pointCode)
+    );
+
+    if (!pointRow) {
+      throw new Error(
+        `予測CSVに地点コード${C.pointCode}がありません`
+      );
+    }
+
+    const forecastTimes = rows[0].slice(2);
+
+    const values = forecastTimes
+      .map((timeText, index) => {
+        const date = parseCompactJapanDateTime(timeText);
+        const value = parseForecastValue(pointRow[index + 2]);
+
+        return {
+          at: date,
+          value
+        };
+      })
+      .filter(
+        (item) =>
+          item.at instanceof Date &&
+          !Number.isNaN(item.at.getTime()) &&
+          item.value !== null
+      );
+
+    if (values.length === 0) {
+      throw new Error('有効な予測値がありません');
+    }
+
+    return {
+      publishedText: pointRow[1] || '',
+      values
+    };
+  }
+
+  function parseActualValue(value) {
+    if (
+      value === undefined ||
+      value === null ||
+      String(value).trim() === ''
+    ) {
+      return null;
+    }
+
+    const number = Number(value);
+
+    if (
+      !Number.isFinite(number) ||
+      number < -20 ||
+      number > 60
+    ) {
+      return null;
+    }
+
+    return number;
+  }
+
+  function parseActualCsv(text) {
+    const rows = parseCsv(text);
+
+    if (
+      rows.length < 2 ||
+      rows[0][0] !== 'Date' ||
+      rows[0][1] !== 'Time'
+    ) {
+      throw new Error('実況CSVの形式が不正です');
+    }
+
+    const pointIndex = rows[0].findIndex(
+      (value) =>
+        String(value).trim() === String(C.pointCode)
+    );
+
+    if (pointIndex < 2) {
+      throw new Error(
+        `実況CSVに地点コード${C.pointCode}がありません`
+      );
+    }
+
+    const currentTime = Date.now();
+
+    const candidates = rows
+      .slice(1)
+      .map((row) => ({
+        at: parseActualJapanDateTime(row[0], row[1]),
+        value: parseActualValue(row[pointIndex])
+      }))
+      .filter(
+        (item) =>
+          item.at instanceof Date &&
+          !Number.isNaN(item.at.getTime()) &&
+          item.at.getTime() <= currentTime + 5 * 60 * 1000 &&
+          item.value !== null
+      )
+      .sort(
+        (first, second) =>
+          second.at.getTime() - first.at.getTime()
+      );
+
+    return candidates[0] || null;
+  }
+
+  function parseAlertMetadata(rows) {
+    const metadata = {};
+
+    for (const row of rows) {
+      if (
+        row.length >= 2 &&
+        /^[A-Za-z][A-Za-z0-9]*$/.test(row[0])
+      ) {
+        metadata[row[0]] = row.slice(1).join(',');
+      }
+    }
+
+    return metadata;
+  }
+
+  function findKanagawaAlertRow(rows) {
+    return rows.find((row) => {
+      if (row.length < 8) {
+        return false;
+      }
+
+      const prefectureName = String(row[4] || '').trim();
+      const prefectureCode = String(row[5] || '').trim();
+
+      return (
+        prefectureName === '神奈川県' ||
+        prefectureCode === '14'
+      );
+    });
+  }
+
+  function parseAlertCsvs(csvTexts) {
+    if (
+      !Array.isArray(csvTexts) ||
+      csvTexts.length === 0
+    ) {
+      throw new Error('アラートCSVがありません');
+    }
+
+    const candidates = [];
+
+    for (let index = 0; index < csvTexts.length; index += 1) {
+      const text = csvTexts[index];
+
+      try {
+        const rows = parseCsv(text);
+        const metadata = parseAlertMetadata(rows);
+        const kanagawaRow = findKanagawaAlertRow(rows);
+
+        if (!kanagawaRow) {
+          continue;
+        }
+
+        const flag = Number(kanagawaRow[6]);
+
+        if (![0, 1, 2, 3, 9].includes(flag)) {
+          console.warn(
+            '未知のアラートフラグを除外しました',
+            flag
+          );
+          continue;
+        }
+
+        const published =
+          parseMetadataJapanDateTime(
+            metadata.ReportDate,
+            metadata.ReportTime
+          );
+
+        const targetDate =
+          parseMetadataJapanDateTime(
+            metadata.TargetDate1,
+            metadata.TargetTime1
+          );
+
+        /*
+         * TargetDate1を取得できる場合だけ当日照合します。
+         * メタ情報が取得できないことだけを理由に、
+         * 有効な神奈川県行を全体エラーにはしません。
+         */
+        if (
+          targetDate &&
+          getJapanDateKey(targetDate) !== getJapanDateKey()
+        ) {
+          continue;
+        }
+
+        /*
+         * 通常情報以外は除外します。
+         * Statusが存在しないCSVは、行データを優先します。
+         */
+        if (
+          metadata.Status &&
+          metadata.Status !== '通常'
+        ) {
+          continue;
+        }
+
+        candidates.push({
+          flag,
+          published,
+          sourceIndex: index
+        });
+      } catch (error) {
+        console.warn(
+          `アラートCSV ${index} の解析をスキップしました`,
+          error
+        );
+      }
+    }
+
+    if (candidates.length === 0) {
+      throw new Error(
+        '神奈川県の有効なアラート情報を確認できません'
+      );
+    }
+
+    candidates.sort((first, second) => {
+      const firstTime =
+        first.published instanceof Date
+          ? first.published.getTime()
+          : first.sourceIndex;
+
+      const secondTime =
+        second.published instanceof Date
+          ? second.published.getTime()
+          : second.sourceIndex;
+
+      return secondTime - firstTime;
+    });
+
+    return candidates[0];
+  }
+
+  function getWbgtRank(value) {
+    if (!Number.isFinite(value)) {
+      return {
+        className: 'unknown',
+        label: '判定不能'
+      };
+    }
+
+    if (value >= 31) {
+      return {
+        className: 'danger',
+        label: '危険'
+      };
+    }
+
+    if (value >= 28) {
+      return {
+        className: 'severe',
+        label: '厳重警戒'
+      };
+    }
+
+    if (value >= 25) {
+      return {
+        className: 'caution',
+        label: '警戒'
+      };
+    }
+
+    if (value >= 21) {
+      return {
+        className: 'caution',
+        label: '注意'
+      };
+    }
+
+    return {
+      className: 'safe',
+      label: 'ほぼ安全'
+    };
+  }
+
+  function getAlertPresentation(alert) {
+    if (alert.flag === 3) {
+      return {
+        className: 'special',
+        text: '熱中症特別警戒アラート発表中'
+      };
+    }
+
+    if (alert.flag === 1) {
+      return {
+        className: 'warning',
+        text: '熱中症警戒アラート発表中'
+      };
+    }
+
+    if (alert.flag === 0) {
+      return {
+        className: 'none',
+        text: '発表なし'
+      };
+    }
+
+    if (alert.flag === 2) {
+      return {
+        className: 'unknown',
+        text: '特別警戒情報を確認中'
+      };
+    }
+
+    return {
+      className: 'unknown',
+      text: '確認不能'
+    };
+  }
+
+  function formatDateTime(value) {
+    const date =
+      value instanceof Date
+        ? value
+        : new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+      return '--';
+    }
+
+    return dateTimeFormatter.format(date);
+  }
+
+  function renderForecast(
+    containerId,
+    maximumId,
+    maximumTimeId,
+    values,
+    emptyMessage
+  ) {
+    const container = $(containerId);
+
+    if (!container) {
+      return;
+    }
+
+    container.replaceChildren();
+
+    if (!Array.isArray(values) || values.length === 0) {
+      const emptyElement = document.createElement('div');
+
+      emptyElement.className = 'empty';
+      emptyElement.textContent = emptyMessage;
+
+      container.append(emptyElement);
+
+      $(maximumId).textContent = '最高 --';
+      $(maximumTimeId).textContent = '最高時刻：--';
+
+      return;
+    }
+
+    for (const item of values.slice(0, 6)) {
+      const slot = document.createElement('div');
+      const time = document.createElement('time');
+      const value = document.createElement('b');
+
+      slot.className = 'slot';
+      time.textContent = timeFormatter.format(item.at);
+      value.textContent = `${item.value}℃`;
+
+      slot.append(time, value);
+      container.append(slot);
+    }
+
+    const maximum = values.reduce(
+      (currentMaximum, item) =>
+        item.value > currentMaximum.value
+          ? item
+          : currentMaximum
+    );
+
+    $(maximumId).textContent =
+      `最高 ${maximum.value}℃`;
+
+    $(maximumTimeId).textContent =
+      `最高時刻：${timeFormatter.format(maximum.at)}`;
+  }
+
+  function setStaleBanner(ageMilliseconds) {
+    const banner = $('stale');
+
+    if (!banner) {
+      return;
+    }
+
+    if (ageMilliseconds >= C.stale30) {
+      banner.hidden = false;
+      banner.className = 'critical';
+      banner.textContent =
+        '前回取得データ｜30分以上、最新情報を取得できていません';
+      return;
+    }
+
+    if (ageMilliseconds >= C.stale15) {
+      banner.hidden = false;
+      banner.className = '';
+      banner.textContent =
+        '前回取得データ｜最新情報を取得できていません';
+      return;
+    }
+
+    if (ageMilliseconds > 0) {
+      banner.hidden = false;
+      banner.className = '';
+      banner.textContent =
+        '前回取得データ｜最新データの取得に失敗しました';
+      return;
+    }
+
+    banner.hidden = true;
+    banner.className = '';
+    banner.textContent = '';
+  }
+
+  function renderModel(model, usingStoredData = false) {
+    lastRenderedModel = model;
+
+    const alertPresentation =
+      getAlertPresentation(model.alert);
+
+    const wbgtRank =
+      getWbgtRank(
+        model.observation
+          ? model.observation.value
+          : null
+      );
+
+    $('alert').className =
+      `alert-panel ${alertPresentation.className}`;
+
+    $('alertText').textContent =
+      alertPresentation.text;
+
+    $('alertTime').textContent =
+      `発表日時：${
+        model.alert.published
+          ? formatDateTime(model.alert.published)
+          : '確認不能'
+      }`;
+
+    $('wbgt').className =
+      `wbgt-panel ${wbgtRank.className}`;
+
+    $('value').textContent =
+      model.observation
+        ? model.observation.value.toFixed(1)
+        : '--';
+
+    $('rank').textContent =
+      wbgtRank.label;
+
+    $('obsTime').textContent =
+      `対象時刻：${
+        model.observation
+          ? formatDateTime(model.observation.at)
+          : '欠測または観測時刻前'
+      }`;
+
+    const forecastValues =
+      model.forecast.values.map((item) => ({
+        at:
+          item.at instanceof Date
+            ? item.at
+            : new Date(item.at),
+        value: item.value
+      }));
+
+    const todayValues =
+      forecastValues.filter(
+        (item) =>
+          getJapanDateKey(item.at) ===
+          getJapanDateKey()
+      );
+
+    const tomorrowValues =
+      forecastValues.filter(
+        (item) =>
+          getJapanDateKey(item.at) ===
+          getTomorrowJapanDateKey()
+      );
+
+    renderForecast(
+      'today',
+      'todayMax',
+      'todayAt',
+      todayValues,
+      '当日の予測を確認できません'
+    );
+
+    renderForecast(
+      'tom',
+      'tomMax',
+      'tomAt',
+      tomorrowValues,
+      '翌日の予測はまだ発表されていません'
+    );
+
+    $('generated').textContent =
+      model.generatedAt
+        ? formatDateTime(model.generatedAt)
+        : '--';
+
+    $('success').textContent =
+      formatDateTime(model.fetchedAt);
+
+    if (usingStoredData) {
+      setStaleBanner(
+        Math.max(1, Date.now() - model.fetchedAt)
+      );
+    } else {
+      setStaleBanner(0);
+    }
+  }
+
+  function buildModel(payload) {
+    if (
+      !payload ||
+      payload.schemaVersion !== 1 ||
+      !payload.official
+    ) {
+      throw new Error(
+        'data/current.jsonがまだ生成されていません'
+      );
+    }
+
+    if (
+      payload.pointCode &&
+      String(payload.pointCode) !== String(C.pointCode)
+    ) {
+      throw new Error('JSONの地点コードが一致しません');
+    }
+
+    const forecast =
+      parseForecastCsv(payload.official.forecastCsv);
+
+    const observation =
+      parseActualCsv(payload.official.actualCsv);
+
+    const alert =
+      parseAlertCsvs(payload.official.alertCsvs);
+
+    return {
+      generatedAt: payload.generatedAt || null,
+      forecast,
+      observation,
+      alert,
+      fetchedAt: Date.now()
+    };
+  }
+
+  function saveToLocalStorage(model) {
+    try {
+      localStorage.setItem(
+        C.storageKey,
+        JSON.stringify(model)
+      );
+    } catch (error) {
+      console.error(
+        '前回データの保存に失敗しました',
+        error
+      );
+    }
+  }
+
+  function loadFromLocalStorage() {
+    try {
+      const rawValue =
+        localStorage.getItem(C.storageKey);
+
+      if (!rawValue) {
+        return null;
+      }
+
+      const model = JSON.parse(rawValue);
+
+      if (
+        !model ||
+        !Number.isFinite(model.fetchedAt) ||
+        !model.alert ||
+        !model.forecast
+      ) {
+        throw new Error('保存データの形式が不正です');
+      }
+
+      if (model.alert.published) {
+        model.alert.published =
+          new Date(model.alert.published);
+      }
+
+      if (model.observation?.at) {
+        model.observation.at =
+          new Date(model.observation.at);
+      }
+
+      model.forecast.values =
+        model.forecast.values.map((item) => ({
+          ...item,
+          at: new Date(item.at)
+        }));
+
+      return model;
+    } catch (error) {
+      console.error(
+        '破損した前回データを削除しました',
+        error
+      );
+
+      localStorage.removeItem(C.storageKey);
+
+      return null;
+    }
+  }
+
+  async function fetchJson() {
+    const controller = new AbortController();
+
+    const timeout = window.setTimeout(
+      () => controller.abort(),
+      C.timeoutMs
+    );
+
+    try {
+      const response = await fetch(C.dataUrl, {
+        method: 'GET',
+        signal: controller.signal,
+        cache: 'no-cache',
+        headers: {
+          Accept: 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(
+          `データJSON HTTP ${response.status}`
+        );
+      }
+
+      return await response.json();
+    } finally {
+      window.clearTimeout(timeout);
+    }
+  }
+
+  function renderInitialFailure() {
+    $('alert').className = 'alert-panel unknown';
+    $('alertText').textContent = '情報取得不能';
+    $('alertTime').textContent = '発表日時：--';
+
+    $('wbgt').className = 'wbgt-panel unknown';
+    $('value').textContent = '--';
+    $('rank').textContent = '判定不能';
+    $('obsTime').textContent = '対象時刻：--';
+
+    $('today').replaceChildren();
+    $('tom').replaceChildren();
+
+    renderForecast(
+      'today',
+      'todayMax',
+      'todayAt',
+      [],
+      '当日の予測を確認できません'
+    );
+
+    renderForecast(
+      'tom',
+      'tomMax',
+      'tomAt',
+      [],
+      '翌日の予測を確認できません'
+    );
+
+    $('generated').textContent = '--';
+    $('success').textContent = '--';
+
+    setStaleBanner(C.stale30);
+  }
+
+  async function refreshData() {
+    if (requestInProgress) {
+      return;
+    }
+
+    requestInProgress = true;
+
+    $('net').textContent = '● 取得中';
+    $('net').className = '';
+
+    try {
+      const payload = await fetchJson();
+      const model = buildModel(payload);
+
+      lastSuccessfulFetchTime = model.fetchedAt;
+
+      saveToLocalStorage(model);
+      renderModel(model, false);
+
+      $('net').textContent = '● 通信正常';
+      $('net').className = 'ok';
+    } catch (error) {
+      console.error(
+        '情報の取得または解析に失敗しました',
+        error
+      );
+
+      $('net').textContent = '● 通信失敗';
+      $('net').className = 'ng';
+
+      const storedModel = loadFromLocalStorage();
+
+      if (storedModel) {
+        lastSuccessfulFetchTime =
+          storedModel.fetchedAt;
+
+        renderModel(storedModel, true);
+      } else {
+        renderInitialFailure();
+      }
+    } finally {
+      requestInProgress = false;
+      nextFetchTime = Date.now() + C.refreshMs;
+    }
+  }
+
+  function updateClock() {
+    $('clock').textContent =
+      dateTimeFormatter.format(new Date());
+
+    $('next').textContent =
+      nextFetchTime
+        ? formatDateTime(nextFetchTime)
+        : '--';
+
+    if (lastSuccessfulFetchTime > 0) {
+      const age =
+        Date.now() - lastSuccessfulFetchTime;
+
+      if (
+        $('net').classList.contains('ng') ||
+        age >= C.stale15
+      ) {
+        setStaleBanner(age);
+      }
+    }
+  }
+
+  document.addEventListener(
+    'visibilitychange',
+    () => {
+      if (
+        !document.hidden &&
+        Date.now() - lastSuccessfulFetchTime >=
+          C.refreshMs
+      ) {
+        refreshData().catch(console.error);
+      }
+    }
+  );
+
+  window.addEventListener(
+    'online',
+    () => {
+      refreshData().catch(console.error);
+    }
+  );
+
+  window.addEventListener(
+    'error',
+    (event) => {
+      console.error(
+        'JavaScript例外',
+        event.error || event.message
+      );
+    }
+  );
+
+  window.addEventListener(
+    'unhandledrejection',
+    (event) => {
+      console.error(
+        '未処理のPromise例外',
+        event.reason
+      );
+    }
+  );
+
+  /*
+   * 旧版が保存したエラー状態を引き継がないよう、
+   * 現在のstorageKeyに対応するデータだけを使用します。
+   */
+  const storedModel = loadFromLocalStorage();
+
+  if (storedModel) {
+    lastSuccessfulFetchTime =
+      storedModel.fetchedAt;
+
+    renderModel(storedModel, true);
+  }
+
+  updateClock();
+
+  refreshData().catch(console.error);
+
+  window.setInterval(
+    () => {
+      refreshData().catch(console.error);
+    },
+    C.refreshMs
+  );
+
+  window.setInterval(
+    updateClock,
+    1000
+  );
+
+  window.WBGT_TEST = {
+    getWbgtRank
+  };
+})();
