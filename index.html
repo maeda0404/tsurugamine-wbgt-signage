@@ -975,5 +975,569 @@
 
 <script src="./config.js"></script>
 <script src="./script.js"></script>
+  <style id="signage-auto-fit-style">
+  /*
+   * サイネージ全体を1920×1080の固定キャンバスとして構成し、
+   * ブラウザの表示領域に合わせて画面全体を自動縮小します。
+   *
+   * ブラウザズームによって各パネルの配置を変更せず、
+   * 完成した16:9画面を丸ごと拡大縮小します。
+   */
+
+  html,
+  body {
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    overflow: hidden !important;
+    background: #edf2f6;
+  }
+
+  body {
+    position: relative;
+  }
+
+  /*
+   * 1920×1080の固定レイアウト
+   */
+  main.signage {
+    position: absolute !important;
+    top: 0;
+    left: 0;
+
+    width: 1920px !important;
+    min-width: 1920px !important;
+    max-width: none !important;
+
+    height: 1080px !important;
+    min-height: 1080px !important;
+    max-height: 1080px !important;
+
+    margin: 0 !important;
+    padding: 14px !important;
+
+    display: grid !important;
+
+    grid-template-columns: minmax(0, 1fr) !important;
+
+    grid-template-areas:
+      "header"
+      "stale"
+      "alert"
+      "wbgt"
+      "forecasts"
+      "footer" !important;
+
+    grid-template-rows:
+      82px
+      auto
+      240px
+      minmax(280px, 1fr)
+      180px
+      92px !important;
+
+    gap: 10px !important;
+
+    overflow: hidden !important;
+
+    transform-origin: top left !important;
+
+    /*
+     * JavaScriptがこの値を表示領域に応じて変更します。
+     */
+    transform: scale(var(--signage-scale, 1)) !important;
+  }
+
+  /*
+   * ブラウザズーム時もヘッダーを横並びのまま維持
+   */
+  main.signage .signage-header {
+    min-width: 0 !important;
+    width: auto !important;
+    min-height: 0 !important;
+    height: auto !important;
+
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+
+    padding: 8px 26px !important;
+    gap: 20px !important;
+  }
+
+  main.signage .signage-title {
+    margin: 0 !important;
+
+    font-size: 50px !important;
+    line-height: 1 !important;
+
+    white-space: nowrap !important;
+  }
+
+  main.signage .header-information {
+    width: auto !important;
+
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+
+    gap: 18px !important;
+  }
+
+  main.signage #clock {
+    font-size: 35px !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+  }
+
+  main.signage #net {
+    font-size: 27px !important;
+    white-space: nowrap !important;
+  }
+
+  /*
+   * 更新停止警告
+   */
+  main.signage #stale {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 8px 16px !important;
+
+    font-size: 34px !important;
+    line-height: 1.1 !important;
+  }
+
+  main.signage #stale[hidden] {
+    display: none !important;
+  }
+
+  /*
+   * アラート領域
+   */
+  main.signage .alert-panel {
+    min-width: 0 !important;
+    width: auto !important;
+
+    min-height: 0 !important;
+    height: auto !important;
+
+    display: grid !important;
+    grid-template-columns: 96px minmax(0, 1fr) !important;
+    align-items: center !important;
+
+    gap: 24px !important;
+    padding: 18px 32px !important;
+  }
+
+  main.signage .alert-symbol {
+    width: 84px !important;
+    height: 84px !important;
+
+    font-size: 65px !important;
+  }
+
+  main.signage .alert-caption {
+    font-size: 26px !important;
+    line-height: 1.1 !important;
+  }
+
+  main.signage #alertText {
+    margin: 4px 0 !important;
+
+    font-size: 73px !important;
+    line-height: 1 !important;
+
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  main.signage #alertTime {
+    margin: 5px 0 0 !important;
+
+    font-size: 27px !important;
+    line-height: 1.1 !important;
+  }
+
+  /*
+   * WBGT領域
+   */
+  main.signage .wbgt-panel {
+    min-width: 0 !important;
+    width: auto !important;
+
+    min-height: 0 !important;
+    height: auto !important;
+
+    padding: 14px 26px !important;
+
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    align-content: center !important;
+
+    overflow: hidden !important;
+  }
+
+  main.signage .panel-heading {
+    margin: 0 0 6px !important;
+
+    font-size: 33px !important;
+    line-height: 1.1 !important;
+  }
+
+  main.signage .wbgt-main {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: baseline !important;
+
+    gap: 18px !important;
+  }
+
+  main.signage #value {
+    font-size: 205px !important;
+    line-height: 0.84 !important;
+    letter-spacing: -8px !important;
+
+    white-space: nowrap !important;
+  }
+
+  main.signage .wbgt-unit {
+    font-size: 70px !important;
+    line-height: 1 !important;
+  }
+
+  main.signage #rank {
+    padding: 6px 14px !important;
+
+    font-size: 50px !important;
+    line-height: 1 !important;
+
+    white-space: nowrap !important;
+  }
+
+  main.signage .wbgt-detail {
+    margin: 4px 0 0 !important;
+
+    font-size: 24px !important;
+    line-height: 1.15 !important;
+  }
+
+  /*
+   * 当日・翌日の予測は常に横並び
+   */
+  main.signage .forecast-grid {
+    min-width: 0 !important;
+    width: auto !important;
+
+    display: grid !important;
+    grid-template-columns:
+      minmax(0, 1fr)
+      minmax(0, 1fr) !important;
+
+    gap: 12px !important;
+  }
+
+  main.signage .forecast-card {
+    min-width: 0 !important;
+    width: auto !important;
+
+    padding: 9px 16px !important;
+
+    overflow: hidden !important;
+  }
+
+  main.signage .forecast-header {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+
+    gap: 10px !important;
+  }
+
+  main.signage .forecast-title {
+    margin: 0 !important;
+
+    font-size: 31px !important;
+    line-height: 1 !important;
+
+    white-space: nowrap !important;
+  }
+
+  main.signage .forecast-maximum {
+    font-size: 34px !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+  }
+
+  main.signage .slots {
+    min-width: 0 !important;
+
+    display: grid !important;
+    grid-template-columns:
+      repeat(6, minmax(0, 1fr)) !important;
+
+    gap: 5px !important;
+    margin-top: 7px !important;
+  }
+
+  main.signage .slot {
+    min-width: 0 !important;
+
+    padding: 3px !important;
+  }
+
+  main.signage .slot time {
+    font-size: 20px !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+  }
+
+  main.signage .slot b {
+    font-size: 35px !important;
+    line-height: 1.05 !important;
+    white-space: nowrap !important;
+  }
+
+  main.signage .empty {
+    grid-column: 1 / -1 !important;
+
+    padding: 18px 6px !important;
+
+    font-size: 27px !important;
+    line-height: 1.1 !important;
+  }
+
+  main.signage .forecast-time {
+    margin: 5px 0 0 !important;
+
+    font-size: 20px !important;
+    line-height: 1 !important;
+  }
+
+  /*
+   * フッターは常に2列
+   */
+  main.signage .signage-footer {
+    min-width: 0 !important;
+    width: auto !important;
+
+    display: grid !important;
+    grid-template-columns:
+      minmax(0, 1.15fr)
+      minmax(0, 1fr) !important;
+
+    align-items: center !important;
+
+    gap: 4px 16px !important;
+    padding: 7px 14px !important;
+
+    font-size: 17px !important;
+    line-height: 1.15 !important;
+
+    overflow: hidden !important;
+  }
+
+  main.signage .footer-source,
+  main.signage .footer-times {
+    min-width: 0 !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  main.signage .footer-notice {
+    grid-column: 1 / -1 !important;
+
+    margin: 0 !important;
+    padding: 4px 8px !important;
+
+    font-size: 20px !important;
+    line-height: 1.1 !important;
+  }
+
+  /*
+   * 以前設定した画面幅・画面高さ用のメディアクエリを
+   * 実質的に無効化するため、固定レイアウトを再指定します。
+   */
+  @media (max-width: 1100px) {
+    main.signage .signage-header {
+      flex-direction: row !important;
+      align-items: center !important;
+    }
+
+    main.signage .signage-title {
+      white-space: nowrap !important;
+    }
+
+    main.signage .header-information {
+      width: auto !important;
+      flex-direction: row !important;
+      justify-content: flex-end !important;
+    }
+
+    main.signage .forecast-grid {
+      grid-template-columns:
+        minmax(0, 1fr)
+        minmax(0, 1fr) !important;
+    }
+
+    main.signage .signage-footer {
+      grid-template-columns:
+        minmax(0, 1.15fr)
+        minmax(0, 1fr) !important;
+    }
+
+    main.signage .footer-notice {
+      grid-column: 1 / -1 !important;
+    }
+  }
+
+  @media (max-width: 760px) {
+    main.signage .header-information {
+      flex-direction: row !important;
+      align-items: center !important;
+    }
+
+    main.signage .alert-panel {
+      grid-template-columns:
+        96px
+        minmax(0, 1fr) !important;
+    }
+
+    main.signage .slots {
+      grid-template-columns:
+        repeat(6, minmax(0, 1fr)) !important;
+    }
+  }
+</style>
+
+<script>
+  (() => {
+    'use strict';
+
+    const DESIGN_WIDTH = 1920;
+    const DESIGN_HEIGHT = 1080;
+
+    let resizeFrame = 0;
+
+    function fitSignageToViewport() {
+      const signage = document.querySelector('main.signage');
+
+      if (!signage) {
+        return;
+      }
+
+      /*
+       * visualViewportが使用できる場合は、
+       * ブラウザズーム後の実際の表示領域を利用します。
+       */
+      const viewportWidth =
+        window.visualViewport?.width ||
+        document.documentElement.clientWidth ||
+        window.innerWidth;
+
+      const viewportHeight =
+        window.visualViewport?.height ||
+        document.documentElement.clientHeight ||
+        window.innerHeight;
+
+      if (
+        !Number.isFinite(viewportWidth) ||
+        !Number.isFinite(viewportHeight) ||
+        viewportWidth <= 0 ||
+        viewportHeight <= 0
+      ) {
+        return;
+      }
+
+      /*
+       * 横方向と縦方向の両方に収まる倍率を採用します。
+       * 拡大時も縮小時も、パネルの配置関係は変えません。
+       */
+      const scale = Math.min(
+        viewportWidth / DESIGN_WIDTH,
+        viewportHeight / DESIGN_HEIGHT
+      );
+
+      const safeScale =
+        Number.isFinite(scale) && scale > 0
+          ? scale
+          : 1;
+
+      signage.style.setProperty(
+        '--signage-scale',
+        String(safeScale)
+      );
+
+      /*
+       * 画面中央へ配置します。
+       */
+      const displayedWidth =
+        DESIGN_WIDTH * safeScale;
+
+      const displayedHeight =
+        DESIGN_HEIGHT * safeScale;
+
+      const left = Math.max(
+        0,
+        (viewportWidth - displayedWidth) / 2
+      );
+
+      const top = Math.max(
+        0,
+        (viewportHeight - displayedHeight) / 2
+      );
+
+      signage.style.left = `${left}px`;
+      signage.style.top = `${top}px`;
+    }
+
+    function requestFit() {
+      window.cancelAnimationFrame(resizeFrame);
+
+      resizeFrame = window.requestAnimationFrame(
+        fitSignageToViewport
+      );
+    }
+
+    document.addEventListener(
+      'DOMContentLoaded',
+      requestFit
+    );
+
+    window.addEventListener(
+      'load',
+      requestFit
+    );
+
+    window.addEventListener(
+      'resize',
+      requestFit
+    );
+
+    window.addEventListener(
+      'orientationchange',
+      requestFit
+    );
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener(
+        'resize',
+        requestFit
+      );
+
+      window.visualViewport.addEventListener(
+        'scroll',
+        requestFit
+      );
+    }
+
+    requestFit();
+  })();
+</script>
 </body>
 </html>
