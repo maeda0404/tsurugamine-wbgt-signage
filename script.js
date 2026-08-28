@@ -784,9 +784,23 @@
     const observation =
       parseActualCsv(payload.official.actualCsv);
 
-    const alert =
-      parseAlertCsvs(payload.official.alertCsvs);
+  let alert;
 
+try {
+  alert = parseAlertCsvs(
+    payload.official.alertCsvs
+  );
+} catch (error) {
+  console.warn(
+    'アラート情報を解析できないため、確認不能として表示します',
+    error
+  );
+
+  alert = {
+    flag: 9,
+    published: null
+  };
+}
     return {
       generatedAt: payload.generatedAt || null,
       forecast,
