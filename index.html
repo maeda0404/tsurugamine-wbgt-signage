@@ -1539,5 +1539,246 @@
     requestFit();
   })();
 </script>
+  <style id="wbgt-level-display-style">
+  /*
+   * 上段の熱中症警戒情報パネルを非表示にします。
+   * HTML要素はJavaScriptとの互換性維持のため残します。
+   */
+  main.signage .alert-panel {
+    display: none !important;
+  }
+
+  /*
+   * アラート領域をレイアウトから削除し、
+   * WBGT表示へ広い面積を配分します。
+   */
+  main.signage {
+    grid-template-areas:
+      "header"
+      "stale"
+      "wbgt"
+      "forecasts"
+      "footer" !important;
+
+    grid-template-rows:
+      82px
+      auto
+      minmax(0, 1fr)
+      180px
+      92px !important;
+  }
+
+  /*
+   * WBGTパネル
+   */
+  main.signage .wbgt-panel {
+    min-width: 0 !important;
+    min-height: 0 !important;
+    height: auto !important;
+
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    align-content: center !important;
+
+    padding: 24px 34px !important;
+
+    border-width: 7px !important;
+    border-radius: 20px !important;
+
+    overflow: hidden !important;
+  }
+
+  /*
+   * 「現在または直近の暑さ指数」
+   */
+  main.signage .panel-heading {
+    margin: 0 0 10px !important;
+
+    font-size: 38px !important;
+    font-weight: 900 !important;
+    line-height: 1.1 !important;
+  }
+
+  /*
+   * WBGT数値、単位、判定文字を横一列に配置します。
+   */
+  main.signage .wbgt-main {
+    min-width: 0 !important;
+
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+
+    gap: 24px !important;
+
+    overflow: hidden !important;
+  }
+
+  /*
+   * WBGT数値
+   */
+  main.signage #value {
+    flex: 0 0 auto !important;
+
+    font-size: 230px !important;
+    font-weight: 900 !important;
+    line-height: 0.88 !important;
+    letter-spacing: -10px !important;
+
+    white-space: nowrap !important;
+  }
+
+  /*
+   * ℃
+   */
+  main.signage .wbgt-unit {
+    flex: 0 0 auto !important;
+
+    margin-right: 8px !important;
+
+    font-size: 82px !important;
+    font-weight: 900 !important;
+    line-height: 1 !important;
+
+    white-space: nowrap !important;
+  }
+
+  /*
+   * 判定文字
+   *
+   * 30.5℃と同程度に目立つ大きさにします。
+   * 長い「厳重警戒」も1920px内へ収まるよう、
+   * 数値より少し小さい145pxにしています。
+   */
+  main.signage #rank {
+    flex: 0 1 auto !important;
+    min-width: 0 !important;
+
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    margin-left: 12px !important;
+    padding: 10px 24px !important;
+
+    font-size: 145px !important;
+    font-weight: 900 !important;
+    line-height: 1 !important;
+    letter-spacing: 0.01em !important;
+
+    white-space: nowrap !important;
+
+    background: #ffffff !important;
+    border: 9px solid currentColor !important;
+    border-radius: 22px !important;
+  }
+
+  /*
+   * 対象時刻、公式地点
+   */
+  main.signage .wbgt-detail {
+    margin: 7px 0 0 !important;
+
+    font-size: 27px !important;
+    font-weight: 800 !important;
+    line-height: 1.15 !important;
+  }
+
+  /*
+   * 危険
+   * WBGT 31以上
+   */
+  main.signage .wbgt-panel.danger {
+    color: #7a0614 !important;
+    background: #fff0f2 !important;
+    border-color: #7a0614 !important;
+  }
+
+  main.signage .wbgt-panel.danger #value,
+  main.signage .wbgt-panel.danger .wbgt-unit,
+  main.signage .wbgt-panel.danger #rank {
+    color: #7a0614 !important;
+  }
+
+  /*
+   * 厳重警戒
+   * WBGT 28以上31未満
+   */
+  main.signage .wbgt-panel.severe {
+    color: #65207d !important;
+    background: #f9efff !important;
+    border-color: #65207d !important;
+  }
+
+  main.signage .wbgt-panel.severe #value,
+  main.signage .wbgt-panel.severe .wbgt-unit,
+  main.signage .wbgt-panel.severe #rank {
+    color: #65207d !important;
+  }
+
+  /*
+   * 警戒
+   * WBGT 25以上28未満
+   */
+  main.signage .wbgt-panel.warning {
+    color: #c01818 !important;
+    background: #fff1f1 !important;
+    border-color: #c01818 !important;
+  }
+
+  main.signage .wbgt-panel.warning #value,
+  main.signage .wbgt-panel.warning .wbgt-unit,
+  main.signage .wbgt-panel.warning #rank {
+    color: #c01818 !important;
+  }
+
+  /*
+   * 注意
+   * WBGT 21以上25未満
+   */
+  main.signage .wbgt-panel.attention {
+    color: #b95700 !important;
+    background: #fff6e7 !important;
+    border-color: #d36a00 !important;
+  }
+
+  main.signage .wbgt-panel.attention #value,
+  main.signage .wbgt-panel.attention .wbgt-unit,
+  main.signage .wbgt-panel.attention #rank {
+    color: #b95700 !important;
+  }
+
+  /*
+   * ほぼ安全
+   * WBGT 21未満
+   */
+  main.signage .wbgt-panel.safe {
+    color: #08713e !important;
+    background: #effcf5 !important;
+    border-color: #08713e !important;
+  }
+
+  main.signage .wbgt-panel.safe #value,
+  main.signage .wbgt-panel.safe .wbgt-unit,
+  main.signage .wbgt-panel.safe #rank {
+    color: #08713e !important;
+  }
+
+  /*
+   * 判定不能
+   */
+  main.signage .wbgt-panel.unknown {
+    color: #52616e !important;
+    background: #f5f7f8 !important;
+    border-color: #667582 !important;
+  }
+
+  main.signage .wbgt-panel.unknown #value,
+  main.signage .wbgt-panel.unknown .wbgt-unit,
+  main.signage .wbgt-panel.unknown #rank {
+    color: #52616e !important;
+  }
+</style>
 </body>
 </html>
