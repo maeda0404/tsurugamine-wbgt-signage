@@ -479,12 +479,46 @@
   }
 
   function getWbgtRank(value) {
-    if (!Number.isFinite(value)) {
-      return {
-        className: 'unknown',
-        label: '判定不能'
-      };
-    }
+  if (!Number.isFinite(value)) {
+    return {
+      className: 'unknown',
+      label: '判定不能'
+    };
+  }
+
+  if (value >= 31) {
+    return {
+      className: 'danger',
+      label: '危険'
+    };
+  }
+
+  if (value >= 28) {
+    return {
+      className: 'severe',
+      label: '厳重警戒'
+    };
+  }
+
+  if (value >= 25) {
+    return {
+      className: 'warning',
+      label: '警戒'
+    };
+  }
+
+  if (value >= 21) {
+    return {
+      className: 'attention',
+      label: '注意'
+    };
+  }
+
+  return {
+    className: 'safe',
+    label: 'ほぼ安全'
+  };
+}
 
     if (value >= 31) {
       return {
