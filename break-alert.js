@@ -4,7 +4,7 @@
   const SETTINGS = Object.freeze({
     threshold: 25,
     displayMinutes: 10,
-    imageUrl: '/tsurugamine-wbgt-signage/images/heat-break-10min.png?v=3',
+   imageUrl: '/tsurugamine-wbgt-signage/images/heat-break-10min-16x9.png?v=1',
     pendingKey: 'tsurugamine-break-pending-v1',
     activeHourKey: 'tsurugamine-break-active-hour-v1'
   });
