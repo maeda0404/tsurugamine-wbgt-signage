@@ -1779,6 +1779,132 @@
   main.signage .wbgt-panel.unknown #rank {
     color: #52616e !important;
   }
+
+    /* WBGT数値と判定を左右にバランスよく配置 */
+
+main.signage .wbgt-main {
+  width: 100% !important;
+  min-width: 0 !important;
+
+  display: grid !important;
+  grid-template-columns: 700px minmax(0, 1fr) !important;
+  align-items: center !important;
+
+  margin: 5px 0 10px !important;
+  padding: 0 45px 0 5px !important;
+}
+
+/* 数値と℃を左側の1列にまとめる */
+
+main.signage #value {
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+
+  justify-self: start !important;
+
+  margin: 0 !important;
+  padding: 0 110px 0 0 !important;
+
+  font-size: 230px !important;
+  font-weight: 900 !important;
+  line-height: 0.88 !important;
+  letter-spacing: -10px !important;
+
+  white-space: nowrap !important;
+}
+
+main.signage .wbgt-unit {
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+
+  justify-self: end !important;
+  align-self: center !important;
+
+  margin: 25px 20px 0 0 !important;
+
+  font-size: 82px !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+
+  white-space: nowrap !important;
+}
+
+/* 判定を右側領域の中央に配置 */
+
+main.signage #rank {
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+
+  justify-self: center !important;
+  align-self: center !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  min-width: 440px !important;
+  max-width: 100% !important;
+
+  margin: 0 !important;
+  padding: 15px 32px 22px !important;
+
+  font-size: 190px !important;
+  font-weight: 900 !important;
+  line-height: 0.92 !important;
+  letter-spacing: 0.08em !important;
+
+  text-align: center !important;
+  white-space: nowrap !important;
+
+  border: 9px solid currentColor !important;
+  border-radius: 24px !important;
+}
+
+/* 危険 */
+
+main.signage .wbgt-panel.danger #rank {
+  min-width: 460px !important;
+  font-size: 190px !important;
+}
+
+/* 厳重警戒 */
+
+main.signage .wbgt-panel.severe #rank {
+  min-width: 760px !important;
+  font-size: 145px !important;
+  letter-spacing: 0.02em !important;
+}
+
+/* 警戒 */
+
+main.signage .wbgt-panel.warning #rank {
+  min-width: 460px !important;
+  font-size: 190px !important;
+}
+
+/* 注意 */
+
+main.signage .wbgt-panel.attention #rank {
+  min-width: 460px !important;
+  font-size: 200px !important;
+}
+
+/* ほぼ安全 */
+
+main.signage .wbgt-panel.safe #rank {
+  min-width: 700px !important;
+  font-size: 155px !important;
+  letter-spacing: 0.02em !important;
+}
+
+/* 判定不能 */
+
+main.signage .wbgt-panel.unknown #rank {
+  min-width: 700px !important;
+  font-size: 150px !important;
+  letter-spacing: 0.02em !important;
+}
+    
 </style>
 
 <script src="./config.js?v=31></script>
