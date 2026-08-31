@@ -4,7 +4,7 @@
   const SETTINGS = Object.freeze({
     threshold: 25,
     displayMinutes: 10,
-    imageUrl: './images/heat-break-10min.png',
+    imageUrl: '/tsurugamine-wbgt-signage/images/heat-break-10min.png?v=3',
     pendingKey: 'tsurugamine-break-pending-v1',
     activeHourKey: 'tsurugamine-break-active-hour-v1'
   });
@@ -74,7 +74,15 @@
     const image = document.createElement('img');
     image.src = SETTINGS.imageUrl;
     image.alt = '熱中症防止のため10分の休憩、水分・塩分補給、相互の体調確認を促す掲示';
+image.addEventListener('error', () => {
+  console.error('休憩画像を読み込めませんでした:', image.src);
+  overlay.hidden = true;
+});
 
+image.addEventListener('load', () => {
+  console.info('休憩画像を正常に読み込みました:', image.src);
+});
+    
     countdown = document.createElement('div');
     countdown.id = 'heat-break-countdown';
 
