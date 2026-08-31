@@ -26,7 +26,8 @@ def main():
    if not any(len(r)>=8 and (r[4].strip()=='神奈川県' or r[5].strip()=='14') for r in rr): raise RuntimeError('alert format')
    alerts.append(s)
   except Exception as e: warnings.append(f'{h}:{type(e).__name__}')
- if not alerts: raise RuntimeError('no valid alert csv')
+if not alerts:
+    warnings.append('当日のアラートCSVはまだ生成されていません')
  p={'schemaVersion':1,'generatedAt':datetime.now(timezone.utc).isoformat().replace('+00:00','Z'),'sourceHost':'www.wbgt.env.go.jp','pointCode':POINT,'partialWarnings':warnings,'official':{'forecastCsv':f,'actualCsv':a,'alertCsvs':alerts}}
  OUT.parent.mkdir(exist_ok=True); fd,tmp=tempfile.mkstemp(dir=OUT.parent)
  with os.fdopen(fd,'w',encoding='utf-8') as x: json.dump(p,x,ensure_ascii=False,separators=(',',':')); x.write('\n')
