@@ -460,20 +460,79 @@
     );
   }
 
-  function buildModel(payload) {
-    const generatedTime = new Date(payload.generatedAt).getTime();
+ function buildModel(payload) {
+  /*
+   * 先にJSON全体の形式を確認します。
+   */
+  if (
+    !payload ||
+    payload.schemaVersion !== 1 ||
+    !payload.official
+  ) {
+    throw new Error(
+      'data/current.jsonがまだ生成されていません'
+    );
+  }
 
-if (
-  !Number.isFinite(generatedTime) ||
-  Date.now() - generatedTime > 60 * 60 * 1000
-) {
-  throw new Error(
-    'データ生成から1時間以上経過しています'
-  );
+  /*
+   * JSONが正常な場合に、データ生成時刻を確認します。
+   */
+  const generatedTime =
+    new Date(payload.generatedAt).getTime();
+
+  const dataAge =
+    Date.now() - generatedTime;
+
+  if (
+    !Number.isFinite(generatedTime) ||
+    dataAge > 60 * 60 * 1000
+  ) {
+    throw new Error(
+      'データ生成から1時間以上経過しています'
+    );
+  }
+
+  if (
+    payload.pointCode &&
+    String(payload.pointCode) !== String(C.pointCode)
+  ) {
+    throw new Error(
+      'JSONの地点コードが一致しません'
+    );
+  }
+
+  const forecast =
+    parseForecastCsv(payload.official.forecastCsv);
+
+  const observation =
+    parseActualCsv(payload.official.actualCsv);
+
+  let alert;
+
+  try {
+    alert = parseAlertCsvs(
+      payload.official.alertCsvs
+    );
+  } catch (error) {
+    console.warn(
+      'アラート情報を解析できないため、確認不能として表示します',
+      error
+    );
+
+    alert = {
+      flag: 9,
+      published: null
+    };
+  }
+
+  return {
+    generatedAt: payload.generatedAt || null,
+    forecast,
+    observation,
+    alert,
+    fetchedAt: Date.now()
+  };
 }
-    if (!payload || payload.schemaVersion !== 1 || !payload.official) {
-      throw new Error('data/current.jsonがまだ生成されていません');
-    }
 
     if (payload.pointCode && String(payload.pointCode) !== String(C.pointCode)) {
       throw new Error('JSONの地点コードが一致しません');
