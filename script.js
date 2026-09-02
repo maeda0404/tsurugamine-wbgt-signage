@@ -461,6 +461,16 @@
   }
 
   function buildModel(payload) {
+    const generatedTime = new Date(payload.generatedAt).getTime();
+
+if (
+  !Number.isFinite(generatedTime) ||
+  Date.now() - generatedTime > 60 * 60 * 1000
+) {
+  throw new Error(
+    'データ生成から1時間以上経過しています'
+  );
+}
     if (!payload || payload.schemaVersion !== 1 || !payload.official) {
       throw new Error('data/current.jsonがまだ生成されていません');
     }
