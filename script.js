@@ -460,9 +460,9 @@
     );
   }
 
- function buildModel(payload) {
+function buildModel(payload) {
   /*
-   * 先にJSON全体の形式を確認します。
+   * 最初にJSON全体の形式を確認します。
    */
   if (
     !payload ||
@@ -475,7 +475,7 @@
   }
 
   /*
-   * JSONが正常な場合に、データ生成時刻を確認します。
+   * JSONのデータ生成時刻を確認します。
    */
   const generatedTime =
     new Date(payload.generatedAt).getTime();
@@ -483,12 +483,17 @@
   const dataAge =
     Date.now() - generatedTime;
 
+  /*
+   * 未来日時も異常として扱います。
+   * 1時間以上古いJSONは最新データとして表示しません。
+   */
   if (
     !Number.isFinite(generatedTime) ||
+    dataAge < 0 ||
     dataAge > 60 * 60 * 1000
   ) {
     throw new Error(
-      'データ生成から1時間以上経過しています'
+      'データ生成時刻が不正、または1時間以上経過しています'
     );
   }
 
@@ -526,38 +531,14 @@
   }
 
   return {
-    generatedAt: payload.generatedAt || null,
+    generatedAt: payload.generatedAt,
     forecast,
     observation,
     alert,
     fetchedAt: Date.now()
   };
 }
-
-    if (payload.pointCode && String(payload.pointCode) !== String(C.pointCode)) {
-      throw new Error('JSONの地点コードが一致しません');
-    }
-
-    const forecast = parseForecastCsv(payload.official.forecastCsv);
-    const observation = parseActualCsv(payload.official.actualCsv);
-    let alert;
-
-    try {
-      alert = parseAlertCsvs(payload.official.alertCsvs);
-    } catch (error) {
-      console.warn('アラート情報を解析できないため、確認不能として表示します', error);
-      alert = { flag: 9, published: null };
-    }
-
-    return {
-      generatedAt: payload.generatedAt || null,
-      forecast,
-      observation,
-      alert,
-      fetchedAt: Date.now()
-    };
-  }
-
+  
   function saveToLocalStorage(model) {
     try {
       localStorage.setItem(C.storageKey, JSON.stringify(model));
