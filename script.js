@@ -489,7 +489,7 @@ function buildModel(payload) {
    */
   if (
     !Number.isFinite(generatedTime) ||
-    dataAge < 0 ||
+    dataAge < -5 * 60 * 1000 ||
     dataAge > 60 * 60 * 1000
   ) {
     throw new Error(
