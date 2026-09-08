@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
   schedule:
     # UTC。JSTの毎時12,27,42,57分頃に実行要求。正確な15分間隔は保証されません。
-    - cron: '12,27,42,57 * * * *'
+    - cron: '2,12,22,32,42,52 * * * *'
 permissions:
   contents: write
 concurrency:
