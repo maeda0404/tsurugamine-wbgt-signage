@@ -161,9 +161,13 @@ image.addEventListener('load', () => {
     const hourKey = getHourKey(parts);
     const currentWbgt = readCurrentWbgt();
 
-    if (currentWbgt !== null && currentWbgt >= SETTINGS.threshold) {
-      setStorage(SETTINGS.pendingKey, '1');
-    }
+    if (currentWbgt !== null) {
+  if (currentWbgt >= SETTINGS.threshold) {
+    setStorage(SETTINGS.pendingKey, '1');
+  } else {
+    setStorage(SETTINGS.pendingKey, '0');
+  }
+}
 
     const pending = getStorage(SETTINGS.pendingKey) === '1';
     const activeHour = getStorage(SETTINGS.activeHourKey);
