@@ -973,8 +973,6 @@
     <span id="action" hidden aria-hidden="true"></span>
   </main>
 
-<script src="./config.js?v=31"></script>
-<script src="./script.js?v=31"></script>
   <style id="signage-auto-fit-style">
   /*
    * サイネージ全体を1920×1080の固定キャンバスとして構成し、
@@ -1539,6 +1537,7 @@
     requestFit();
   })();
 </script>
+
   <style id="wbgt-level-display-style">
   /*
    * 上段の熱中症警戒情報パネルを非表示にします。
@@ -1780,134 +1779,139 @@
     color: #52616e !important;
   }
 
-    /* WBGT数値と判定を左右にバランスよく配置 */
+  /* WBGT数値と判定を左右にバランスよく配置 */
 
-main.signage .wbgt-main {
-  width: 100% !important;
-  min-width: 0 !important;
+  main.signage .wbgt-main {
+    width: 100% !important;
+    min-width: 0 !important;
 
-  display: grid !important;
-  grid-template-columns: 700px minmax(0, 1fr) !important;
-  align-items: center !important;
+    display: grid !important;
+    grid-template-columns: 700px minmax(0, 1fr) !important;
+    align-items: center !important;
 
-  margin: 5px 0 10px !important;
-  padding: 0 45px 0 5px !important;
-}
+    margin: 5px 0 10px !important;
+    padding: 0 45px 0 5px !important;
+  }
 
-/* 数値と℃を左側の1列にまとめる */
+  /* 数値と℃を左側の1列にまとめる */
 
-main.signage #value {
-  grid-column: 1 !important;
-  grid-row: 1 !important;
+  main.signage #value {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
 
-  justify-self: start !important;
+    justify-self: start !important;
 
-  margin: 0 !important;
-  padding: 0 110px 0 0 !important;
+    margin: 0 !important;
+    padding: 0 110px 0 0 !important;
 
-  font-size: 230px !important;
-  font-weight: 900 !important;
-  line-height: 0.88 !important;
-  letter-spacing: -10px !important;
+    font-size: 230px !important;
+    font-weight: 900 !important;
+    line-height: 0.88 !important;
+    letter-spacing: -10px !important;
 
-  white-space: nowrap !important;
-}
+    white-space: nowrap !important;
+  }
 
-main.signage .wbgt-unit {
-  grid-column: 1 !important;
-  grid-row: 1 !important;
+  main.signage .wbgt-unit {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
 
-  justify-self: end !important;
-  align-self: center !important;
+    justify-self: end !important;
+    align-self: center !important;
 
-  margin: 25px 20px 0 0 !important;
+    margin: 25px 20px 0 0 !important;
 
-  font-size: 82px !important;
-  font-weight: 900 !important;
-  line-height: 1 !important;
+    font-size: 82px !important;
+    font-weight: 900 !important;
+    line-height: 1 !important;
 
-  white-space: nowrap !important;
-}
+    white-space: nowrap !important;
+  }
 
-/* 判定を右側領域の中央に配置 */
+  /* 判定を右側領域の中央に配置 */
 
-main.signage #rank {
-  grid-column: 2 !important;
-  grid-row: 1 !important;
+  main.signage #rank {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
 
-  justify-self: center !important;
-  align-self: center !important;
-  transform: translateX(80px) !important;
+    justify-self: center !important;
+    align-self: center !important;
+    transform: translateX(80px) !important;
 
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
 
-  min-width: 440px !important;
-  max-width: 100% !important;
+    min-width: 440px !important;
+    max-width: 100% !important;
 
-  margin: 0 !important;
-  padding: 15px 32px 22px !important;
+    margin: 0 !important;
+    padding: 15px 32px 22px !important;
 
-  font-size: 190px !important;
-  font-weight: 900 !important;
-  line-height: 0.92 !important;
-  letter-spacing: 0.08em !important;
+    font-size: 190px !important;
+    font-weight: 900 !important;
+    line-height: 0.92 !important;
+    letter-spacing: 0.08em !important;
 
-  text-align: center !important;
-  white-space: nowrap !important;
+    text-align: center !important;
+    white-space: nowrap !important;
 
-  border: 9px solid currentColor !important;
-  border-radius: 24px !important;
-}
+    border: 9px solid currentColor !important;
+    border-radius: 24px !important;
+  }
 
-/* 危険 */
+  /* 危険 */
 
-main.signage .wbgt-panel.danger #rank {
-  min-width: 460px !important;
-  font-size: 190px !important;
-}
+  main.signage .wbgt-panel.danger #rank {
+    min-width: 460px !important;
+    font-size: 190px !important;
+  }
 
-/* 厳重警戒 */
+  /* 厳重警戒 */
 
-main.signage .wbgt-panel.severe #rank {
-  min-width: 760px !important;
-  font-size: 145px !important;
-  letter-spacing: 0.02em !important;
-}
+  main.signage .wbgt-panel.severe #rank {
+    min-width: 760px !important;
+    font-size: 145px !important;
+    letter-spacing: 0.02em !important;
+  }
 
-/* 警戒 */
+  /* 警戒 */
 
-main.signage .wbgt-panel.warning #rank {
-  min-width: 460px !important;
-  font-size: 190px !important;
-}
+  main.signage .wbgt-panel.warning #rank {
+    min-width: 460px !important;
+    font-size: 190px !important;
+  }
 
-/* 注意 */
+  /* 注意 */
 
-main.signage .wbgt-panel.attention #rank {
-  min-width: 460px !important;
-  font-size: 200px !important;
-}
+  main.signage .wbgt-panel.attention #rank {
+    min-width: 460px !important;
+    font-size: 200px !important;
+  }
 
-/* ほぼ安全 */
+  /* ほぼ安全 */
 
-main.signage .wbgt-panel.safe #rank {
-  min-width: 700px !important;
-  font-size: 155px !important;
-  letter-spacing: 0.02em !important;
-}
+  main.signage .wbgt-panel.safe #rank {
+    min-width: 700px !important;
+    font-size: 155px !important;
+    letter-spacing: 0.02em !important;
+  }
 
-/* 判定不能 */
+  /* 判定不能 */
 
-main.signage .wbgt-panel.unknown #rank {
-  min-width: 700px !important;
-  font-size: 150px !important;
-  letter-spacing: 0.02em !important;
-}
-    
+  main.signage .wbgt-panel.unknown #rank {
+    min-width: 700px !important;
+    font-size: 150px !important;
+    letter-spacing: 0.02em !important;
+  }
 </style>
 
+<!--
+  読み込み順
+  1. config.js   設定値
+  2. script.js   WBGT値などの表示更新
+  3. break-alert.js  休憩画面の判定（#value の値を参照）
+-->
 <script src="./config.js?v=31"></script>
 <script src="./script.js?v=33"></script>
 <script src="./break-alert.js?v=5"></script>
