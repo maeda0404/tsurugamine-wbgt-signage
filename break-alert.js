@@ -4,9 +4,9 @@
   const SETTINGS = Object.freeze({
     threshold: 25,
     displayMinutes: 10,
-   imageUrl: '/tsurugamine-wbgt-signage/images/heat-break-10min-16x9.png?v=1',
-    pendingKey: 'tsurugamine-break-pending-v1',
-    activeHourKey: 'tsurugamine-break-active-hour-v1'
+    imageUrl: '/tsurugamine-wbgt-signage/images/heat-break-10min-16x9.png?v=1',
+    pendingKey: 'tsurugamine-break-pending-v2',
+    activeHourKey: 'tsurugamine-break-active-hour-v2'
   });
 
   let overlay = null;
@@ -39,7 +39,7 @@
     if (!element) return null;
 
     const value = Number.parseFloat(
-      element.textContent.replace(/[^-\d.-]/g, '').trim()
+      element.textContent.replace(/[^-\d.-]/g, '').trim()
     );
 
     return Number.isFinite(value) ? value : null;
@@ -62,6 +62,18 @@
     }
   }
 
+  function removeStorage(key) {
+    try {
+      localStorage.removeItem(key);
+    } catch (error) {
+      console.warn('休憩表示の保存情報を削除できませんでした', error);
+    }
+  }
+
+  // 旧バージョン（v1）の残留データを端末から除去する
+  removeStorage('tsurugamine-break-pending-v1');
+  removeStorage('tsurugamine-break-active-hour-v1');
+
   function createOverlay() {
     if (overlay) return;
 
@@ -74,15 +86,16 @@
     const image = document.createElement('img');
     image.src = SETTINGS.imageUrl;
     image.alt = '熱中症防止のため10分の休憩、水分・塩分補給、相互の体調確認を促す掲示';
-image.addEventListener('error', () => {
-  console.error('休憩画像を読み込めませんでした:', image.src);
-  overlay.hidden = true;
-});
 
-image.addEventListener('load', () => {
-  console.info('休憩画像を正常に読み込みました:', image.src);
-});
-    
+    image.addEventListener('error', () => {
+      console.error('休憩画像を読み込めませんでした:', image.src);
+      overlay.hidden = true;
+    });
+
+    image.addEventListener('load', () => {
+      console.info('休憩画像を正常に読み込みました:', image.src);
+    });
+
     countdown = document.createElement('div');
     countdown.id = 'heat-break-countdown';
 
@@ -161,26 +174,38 @@ image.addEventListener('load', () => {
     const hourKey = getHourKey(parts);
     const currentWbgt = readCurrentWbgt();
 
-    if (currentWbgt !== null) {
-  if (currentWbgt >= SETTINGS.threshold) {
+    // WBGT値を取得できていない間は、保存情報だけで休憩画面を出さない
+    if (currentWbgt === null) {
+      hideOverlay();
+      return;
+    }
+
+    // 基準未満なら、未実行の予約と表示中の状態を両方解除する
+    if (currentWbgt < SETTINGS.threshold) {
+      removeStorage(SETTINGS.pendingKey);
+      removeStorage(SETTINGS.activeHourKey);
+      hideOverlay();
+      return;
+    }
+
+    // ここから先は現在のWBGTが基準値以上の場合のみ
     setStorage(SETTINGS.pendingKey, '1');
-  } else {
-    setStorage(SETTINGS.pendingKey, '0');
-  }
-}
 
     const pending = getStorage(SETTINGS.pendingKey) === '1';
     const activeHour = getStorage(SETTINGS.activeHourKey);
-    const isDisplayWindow = minute >= 0 && minute < SETTINGS.displayMinutes;
+    const isDisplayWindow =
+      minute >= 0 && minute < SETTINGS.displayMinutes;
 
+    // 同じ時間帯ですでに休憩表示が開始されている場合
     if (isDisplayWindow && activeHour === hourKey) {
       showOverlay(parts);
       return;
     }
 
+    // 毎時00分から10分未満で、予約がある場合
     if (isDisplayWindow && pending) {
       setStorage(SETTINGS.activeHourKey, hourKey);
-      setStorage(SETTINGS.pendingKey, '0');
+      removeStorage(SETTINGS.pendingKey);
       showOverlay(parts);
       return;
     }
